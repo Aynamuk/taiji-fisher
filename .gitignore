@@ -8,7 +8,10 @@ __pycache__/
 
 # PyInstaller 构建产物
 build/
-dist/
+dist/*
+# 例外：发布版可执行程序随仓库分发，方便直接下载运行
+!dist/TaijiFisher.exe
+!dist/config.json
 
 # IDE / 编辑器
 .idea/

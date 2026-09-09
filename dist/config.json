@@ -1,0 +1,13 @@
+{
+  "rate_bps": 1024.0,
+  "throttle_seconds": 600,
+  "release_seconds": 10,
+  "cast_key": "1",
+  "cast_interval": 1.4,
+  "cycles": 0,
+  "stop_after_minutes": 0.0,
+  "jitter": 0.15,
+  "input_mode": "foreground",
+  "flow_refresh_seconds": 5,
+  "windivert_dll": "C:\\Users\\ADMINI~1\\AppData\\Local\\Temp\\_MEI00002fa42\\vendored\\WinDivert.dll"
+}
