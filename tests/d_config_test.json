@@ -1,0 +1,11 @@
+{
+  "rate_bps": 1024.0,
+  "throttle_seconds": 600,
+  "release_seconds": 10,
+  "cast_key": "1",
+  "cast_interval": 1.4,
+  "cycles": 0,
+  "stop_after_minutes": 0.2,  "jitter": 0.15,
+  "input_mode": "postmessage",
+  "flow_refresh_seconds": 5
+}

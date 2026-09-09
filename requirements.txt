@@ -1,0 +1,5 @@
+psutil>=5.9
+keyboard>=0.13.5
+customtkinter>=5.2
+pystray>=0.19
+pillow>=10.0
