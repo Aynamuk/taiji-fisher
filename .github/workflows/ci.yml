@@ -37,8 +37,15 @@ jobs:
       - name: 语法检查
         run: python -m compileall -q .
 
+      # ⚠️ Windows runner 的控制台默认编码是 cp1252，任何中文 print 都会
+      #    UnicodeEncodeError（实测：'charmap' codec can't encode characters）。
+      #    故所有跑 Python 的步骤都要先设 UTF-8。
       - name: import 冒烟测试
-        run: python -c "import bot, gameproc, throttler, windivert, gameinput, paths, main, gui; print('全部模块 import OK')"
+        shell: pwsh
+        run: |
+          $env:PYTHONIOENCODING = 'utf-8'
+          $env:PYTHONUTF8 = '1'
+          python -c "import bot, gameproc, throttler, windivert, gameinput, paths, main, gui; print('all modules import OK')"
 
       # ⚠️ 本项目 tests/ 下的脚本**永远以 0 退出**：成败只写进 tests/*.out
       #    的 `RESULT: PASS|FAIL|PARTIAL` 行（见各脚本的 finally 块）。
