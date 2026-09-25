@@ -1,8 +1,0 @@
-基线速率      : 9288 KB/s
-限速已开启 @ 512000 B/s(仅下载方向) 端点: TCP=[('106.74.131.149', 443), ('123.6.194.34', 443)] UDP=[]
-注意：首个包在开限速后 1.0 秒才被捕获
-限速统计      : {'running': True, 'recv_alive': True, 'since_capture': 0.014999999999417923, 'elapsed': 13.109000000000378, 'out_throttled': 0, 'in_throttled': 6828064, 'out_sent': 0, 'in_sent': 6711424, 'dropped': 0, 'queued': 81}
-窗口放行速率  : 500.0 KB/s (目标 500)
-停止限速，排队数据 123840 字节 (flush=True)
-解限后速率    : 14702 KB/s
-RESULT: PASS

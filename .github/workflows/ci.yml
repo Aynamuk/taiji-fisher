@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+# 为什么用 windows-latest：
+#   本项目是 Windows 专属 —— gameproc/gameinput 用 ctypes 调 user32，
+#   throttler/windivert 依赖 WinDivert 驱动，gui 用 customtkinter。
+#   在 Linux 上连 import 都过不去。公开仓库的 Windows runner 同样免费。
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 语法检查
+        run: python -m compileall -q .
+
+      - name: import 冒烟测试
+        run: python -c "import bot, gameproc, throttler, windivert, gameinput, paths, main, gui; print('全部模块 import OK')"
+
+      # ⚠️ 本项目 tests/ 下的脚本**永远以 0 退出**：成败只写进 tests/*.out
+      #    的 `RESULT: PASS|FAIL|PARTIAL` 行（见各脚本的 finally 块）。
+      #    因此不能靠退出码判定，必须解析输出文件。
+      #
+      # 只跑在无人值守环境**稳定通过**的两个（各实测连跑 3 遍均 PASS）：
+      #   test_gameproc  纯本机进程/窗口枚举，不碰驱动
+      #   test_tray      托盘隐藏/恢复（customtkinter 可离屏跑）
+      #
+      # 未纳入的（原因均为实测，不是猜）：
+      #   test_throttle / test_download_throttle  都要 shaper.start() → WinDivertOpen，
+      #     而加载驱动需要管理员权限；CI runner 无法提权，实测
+      #     WinDivertError: WinError 5 拒绝访问
+      #   test_bot_integration  实测 3 遍为 FAIL|FAIL|PASS，不稳定
+      #   test_input            实测 3 遍为 PARTIAL|FAIL|FAIL，依赖前台窗口焦点，不稳定
+      - name: 离线自检（解析 RESULT 行）
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:PYTHONIOENCODING = 'utf-8'
+          $env:PYTHONUTF8 = '1'
+
+          # 脚本名 -> 结果文件名
+          $cases = [ordered]@{
+            'test_gameproc' = 'gameproc.out'
+            'test_tray'     = 'tray.out'
+          }
+
+          $failed = @()
+          foreach ($t in $cases.Keys) {
+            Write-Host ""
+            Write-Host "===== $t ====="
+            python "tests/$t.py"
+            $exit = $LASTEXITCODE
+
+            $outFile = "tests/$($cases[$t])"
+            if (-not (Test-Path $outFile)) {
+              Write-Host "❌ 没有产出结果文件 $outFile"
+              $failed += "$t(无输出文件)"
+              continue
+            }
+
+            $resultLine = (Get-Content $outFile -Encoding UTF8 |
+                           Select-String -Pattern 'RESULT:').Line
+            Write-Host "  $resultLine"
+
+            if ($resultLine -notmatch 'RESULT:\s*PASS') {
+              $failed += "$t($resultLine)"
+            }
+          }
+
+          Write-Host ""
+          if ($failed.Count -gt 0) {
+            Write-Host "❌ 失败：$($failed -join '; ')"
+            exit 1
+          }
+          Write-Host "✅ 全部通过（$($cases.Count) 项）"

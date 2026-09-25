@@ -6,12 +6,17 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 
+# 测试产物（每次跑 tests/ 下的脚本都会生成，不应进仓库）
+tests/*.out
+tests/run_state*.png
+
 # PyInstaller 构建产物
 build/
 dist/*
-# 例外：发布版可执行程序随仓库分发，方便直接下载运行
-!dist/TaijiFisher.exe
+# 例外：dist/config.json 是出厂默认配置模板，随仓库分发
 !dist/config.json
+# 注意：dist/TaijiFisher.exe 不再随仓库分发（31MB 二进制会撑大 git 历史）。
+#       发布走 GitHub Release 附件，见 README 的下载说明。
 
 # IDE / 编辑器
 .idea/

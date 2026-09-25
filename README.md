@@ -53,12 +53,14 @@
 
 **方式一：直接用打包好的 exe（推荐）**
 
-仓库已内置打包好的 `dist/TaijiFisher.exe`（单文件，约 31MB），无需 Python 环境。
-在 [Releases](../../releases/tag/v1.0) 或仓库的 `dist/` 目录下载即可，双击运行；
-Windows 会弹 UAC 管理员确认（exe 内嵌了管理员清单），确认后直接进 GUI。
+在 [Releases](../../releases/latest) 下载 `TaijiFisher.exe`（单文件，约 31MB），无需 Python 环境。
+双击运行；Windows 会弹 UAC 管理员确认（exe 内嵌了管理员清单），确认后直接进 GUI。
 `config.json` 会生成在 exe 旁边；WinDivert 驱动内嵌在 exe 里，运行时自动解包加载。
 exe 可自由改名。注意：未签名的 PyInstaller 单文件 exe 容易被杀软误报，
 报毒请加白名单或改用方式二。
+
+> exe 走 Release 附件而不是放进仓库：31MB 的二进制若进 git 历史，每次改版都会让仓库
+> 再胖一圈（clone 变慢且无法真正删除）。需要自己打包见下文「重新打包 exe」。
 
 **方式二：源码运行**
 
