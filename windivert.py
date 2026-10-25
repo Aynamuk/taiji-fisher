@@ -62,7 +62,26 @@ class WinDivertError(OSError):
     """WinDivert 调用失败。"""
 
 
-def cleanup_stale_services(names=("WinDivert", "tjnet")):
+def _run_sc(*args):
+    """调用 sc.exe。
+
+    CREATE_NO_WINDOW 必须加：本程序是 windowed 打包（无控制台），
+    子进程默认会新建一个控制台窗口，屏幕上就会一闪而过一个黑框。
+    挂机时限速端点每几秒刷新一次，每次 open() 都要跑 2 次 sc.exe，
+    不加这个标志会持续闪窗。
+    """
+    return subprocess.run(["sc.exe"] + list(args),
+                          capture_output=True,
+                          encoding="gbk", errors="replace", timeout=10,
+                          creationflags=subprocess.CREATE_NO_WINDOW)
+
+
+# 每个进程只需清理一次：残留服务是「上次运行留下的」，不是每次 open 的新问题。
+# 重复调用除了浪费，还会在限速端点刷新/自愈重建时反复闪控制台窗口。
+_cleanup_done = False
+
+
+def cleanup_stale_services(names=("WinDivert", "tjnet"), force=False):
     """删除指向已失效路径的 WinDivert 驱动服务。
 
     WinDivert 首次运行会把当时解包目录里的 .sys 注册成系统服务，而
@@ -70,13 +89,18 @@ def cleanup_stale_services(names=("WinDivert", "tjnet")):
     报 WinError 2。这里检查服务指向的文件是否还存在，不存在就删除
     服务，让本次的 WinDivert.dll 用当前路径重新安装。
     （需要管理员权限；任何失败都静默忽略，不影响正常流程。）
+
+    同一进程内只真正执行一次，force=True 可强制重跑；本轮若抛异常
+    则不置位，下次 open() 还会再试。
     """
+    global _cleanup_done
+    if _cleanup_done and not force:
+        return
+
+    ok = True
     for name in names:
         try:
-            # sc.exe 输出是系统 OEM 编码（中文系统为 GBK），按 UTF-8 解码会失败
-            qc = subprocess.run(["sc.exe", "qc", name],
-                                capture_output=True,
-                                encoding="gbk", errors="replace", timeout=10)
+            qc = _run_sc("qc", name)
             m = re.search(r"BINARY_PATH_NAME\s*:\s*(.+)", qc.stdout or "")
             if not m:
                 continue  # 服务未安装
@@ -84,13 +108,16 @@ def cleanup_stale_services(names=("WinDivert", "tjnet")):
             path = raw.replace("\\??\\", "")
             if os.path.isfile(path):
                 continue  # 指向的驱动文件还在，服务有效
-            subprocess.run(["sc.exe", "stop", name],
-                           capture_output=True, timeout=10)
+            _run_sc("stop", name)
             time.sleep(0.3)
-            subprocess.run(["sc.exe", "delete", name],
-                           capture_output=True, timeout=10)
+            _run_sc("delete", name)
         except Exception:
+            ok = False
             continue
+
+    # 全部检查过才记账；有异常就留待下次 open() 重试
+    if ok:
+        _cleanup_done = True
 
 
 class WINDIVERT_ADDRESS(ctypes.Structure):

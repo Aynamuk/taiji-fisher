@@ -1,9 +1,12 @@
 {
-  "rate_bps": 0.5,
+  "process_keywords": [
+    "yysls"
+  ],
+  "rate_bps": 512.0,
   "throttle_seconds": 600,
   "release_seconds": 10,
   "cast_key": "1",
-  "cast_interval": 1.4,
+  "cast_interval": 1.0,
   "cycles": 0,
   "stop_after_minutes": 0.0,
   "jitter": 0.15,

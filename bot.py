@@ -9,10 +9,10 @@
   重复，直到达到 cycles 次数或手动停止。
 
 安全设计：
-  - 开始后自动把游戏窗口置前（前台按键模式依赖）；
+  - 后台按键模式（PostMessage 直接投递到游戏窗口，不抢前台，可边挂机边干别的）；
   - 每轮限速期都会重新扫描端点（游戏断线重连后端点会变）；
   - 游戏进程消失 / 无网络连接时自动暂停等待而不是空转限速；
-  - F9 暂停/继续，F10 停止，F12 紧急解限并停止（GUI 与命令行均注册全局热键）。
+  - F9 暂停/继续，F10 停止（GUI 与命令行均注册全局热键）。
 """
 import random
 import threading
@@ -63,7 +63,7 @@ class FishBot(threading.Thread):
         if self._pause_evt.is_set():
             self._pause_evt.clear()
             self._set_state(self.PAUSED)
-            self._log("已暂停（F9 继续 / F12 紧急解限停止）", "warn")
+            self._log("已暂停（F9 继续 / F10 停止）", "warn")
         else:
             self._pause_evt.set()
             self._log("继续运行")
@@ -145,16 +145,17 @@ class FishBot(threading.Thread):
     def _loop(self, session):
         throttle_s = float(self._cfg_get("throttle_seconds", 600))
         release_s = float(self._cfg_get("release_seconds", 10))
-        cast_interval = float(self._cfg_get("cast_interval", 1.4))
-        cast_key = self._cfg_get("cast_key", "r")
+        cast_interval = float(self._cfg_get("cast_interval", 1.0))
+        cast_key = self._cfg_get("cast_key", "1")
         hold_ms = int(self.TAP_HOLD_SECONDS * 1000)
         cycles = int(self._cfg_get("cycles", 0))
         jitter = float(self._cfg_get("jitter", 0.15))
-        input_mode = self._cfg_get("input_mode", "foreground")
         refresh = float(self._cfg_get("flow_refresh_seconds", 5))
-        scancode = bool(self._cfg_get("send_scancode", False))
         pm_char = bool(self._cfg_get("pm_wm_char", False))
         stop_after = float(self._cfg_get("stop_after_minutes", 0)) * 60.0
+        # 按键一律走后台（PostMessage 投递到游戏窗口），不再抢前台。
+        # 旧配置里的 input_mode=foreground 在此忽略。
+        hwnd = 0
         t_start = time.monotonic()
 
         def time_up():
@@ -167,12 +168,8 @@ class FishBot(threading.Thread):
             return False
 
         def press(key):
-            if input_mode == "postmessage" and hwnd:
-                gameinput.send_key_postmessage(hwnd, key, hold_ms,
-                                               with_char=pm_char)
-            else:
-                gameinput.send_key_foreground(key, hold_ms, jitter,
-                                              scancode=scancode)
+            gameinput.send_key_postmessage(hwnd, key, hold_ms,
+                                           with_char=pm_char)
 
         self._log("启动：限速 %.1fKB/s × %ds → 解限 %ds，技能键 %r 每 %.1fs 一次"
                   % (self._cfg_get("rate_bps", 1024.0) / 1024.0,
@@ -189,22 +186,22 @@ class FishBot(threading.Thread):
             if proc is None:
                 self._set_state(self.WAITING)
                 self._log("没找到游戏进程（关键字 %s），3 秒后重试..."
-                          % self._cfg_get("process_keywords", []), "warn")
+                          % (self._cfg_get("process_keywords", None)
+                             or self.PROCESS_KEYWORDS), "warn")
                 if not self._sleep(3.0):
                     return
                 continue
 
             pid, name, title = proc
-            if input_mode == "foreground":
-                if gameinput.activate_window(pid):
-                    self._log("已把游戏窗口带到前台，请保持游戏在前台（前台按键模式依赖）")
-                else:
-                    self._log("没能把游戏窗口置前；前台模式要求游戏窗口在前台", "warn")
-            hwnd = gameinput.find_window_by_pid(pid) if input_mode == "postmessage" else 0
-            if input_mode == "postmessage" and not hwnd:
-                self._log("找不到 %s 的窗口，postmessage 模式不可用，改用前台模式" % name,
-                          "warn")
-                input_mode = "foreground"
+            hwnd = gameinput.find_window_by_pid(pid)
+            if not hwnd:
+                # 没有窗口句柄就无法投递按键，本轮跳过（下一轮重新找）
+                self._set_state(self.WAITING)
+                self._log("找不到 %s 的窗口句柄，3 秒后重试（后台按键需要窗口）"
+                          % name, "warn")
+                if not self._sleep(3.0):
+                    return
+                continue
 
             # ---------- 限速炸鱼阶段 ----------
             self._set_state(self.THROTTLE, pid=pid, name=name)

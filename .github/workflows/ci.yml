@@ -12,7 +12,7 @@ on:
 
 # 为什么用 windows-latest：
 #   本项目是 Windows 专属 —— gameproc/gameinput 用 ctypes 调 user32，
-#   throttler/windivert 依赖 WinDivert 驱动，gui 用 customtkinter。
+#   throttler/windivert 依赖 WinDivert 驱动，gui 用 PySide6。
 #   在 Linux 上连 import 都过不去。公开仓库的 Windows runner 同样免费。
 jobs:
   test:
@@ -53,7 +53,7 @@ jobs:
       #
       # 只跑在无人值守环境**稳定通过**的两个（各实测连跑 3 遍均 PASS）：
       #   test_gameproc  纯本机进程/窗口枚举，不碰驱动
-      #   test_tray      托盘隐藏/恢复（customtkinter 可离屏跑）
+      #   test_tray      托盘隐藏/恢复（PySide6 可离屏跑）
       #
       # 未纳入的（原因均为实测，不是猜）：
       #   test_throttle / test_download_throttle  都要 shaper.start() → WinDivertOpen，

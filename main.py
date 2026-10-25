@@ -95,16 +95,14 @@ def run_cli():
     parser = argparse.ArgumentParser(description="太极炸鱼助手 CLI")
     parser.add_argument("--keywords", default="yysls",
                         help="进程识别关键字，逗号分隔（默认 yysls）")
-    parser.add_argument("--rate-kb", type=float, default=1.0, dest="rate_kb")
+    parser.add_argument("--rate-kb", type=float, default=0.5, dest="rate_kb")
     parser.add_argument("--throttle", type=float, default=600.0, dest="throttle")
     parser.add_argument("--release", type=float, default=10.0, dest="release")
-    parser.add_argument("--cast-key", default="r", dest="cast_key")
-    parser.add_argument("--interval", type=float, default=1.4)
+    parser.add_argument("--cast-key", default="1", dest="cast_key")
+    parser.add_argument("--interval", type=float, default=1.0)
     parser.add_argument("--cycles", type=int, default=0)
     parser.add_argument("--stop-min", type=float, default=0, dest="stop_min",
                         help="定时停止：N 分钟后自动停止任务（0=不停）")
-    parser.add_argument("--mode", choices=["foreground", "postmessage"],
-                        default="foreground")
     args = parser.parse_args()
 
     import bot as botmod
@@ -124,7 +122,7 @@ def run_cli():
         "cast_interval": args.interval,
         "cycles": args.cycles,
         "stop_after_minutes": args.stop_min,
-        "input_mode": args.mode,
+        "input_mode": "postmessage",
         "windivert_dll": paths.WINDIVERT_DLL,
     }
     b = botmod.FishBot(cfg, log=log, on_state=on_state)

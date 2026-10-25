@@ -20,4 +20,7 @@ VENDORED_DIR = os.path.join(BUNDLED, "vendored")
 # 避免被安全软件按文件名特征拦截
 WINDIVERT_DLL = os.path.join(VENDORED_DIR, "tjnet.dll")
 WINDIVERT_SYS = os.path.join(VENDORED_DIR, "tjnet.sys")
+# 图标：exe 图标由 spec 的 icon= 嵌入，运行时窗口与托盘再读这份 ico
+ASSETS_DIR = os.path.join(BUNDLED, "assets")
+ICON_PATH = os.path.join(ASSETS_DIR, "icon.ico")
 CONFIG_PATH = os.path.join(APPDIR, "config.json")
